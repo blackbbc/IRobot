@@ -69,8 +69,8 @@ void loop()
         URMreader();
         IRBumperReader();
 
-        Motor(2000, LF);
-        Motor(2000, RT);
+        //Motor(2000, LF);
+        //Motor(2000, RT);
     }
 }
 
