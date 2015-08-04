@@ -52,38 +52,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 struct MagnetometerScaled
 {
-	float XAxis;
-	float YAxis;
-	float ZAxis;
+    float XAxis;
+    float YAxis;
+    float ZAxis;
 };
 
 struct MagnetometerRaw
 {
-	int XAxis;
-	int YAxis;
-	int ZAxis;
+    int XAxis;
+    int YAxis;
+    int ZAxis;
 };
 
 class HMC5883L
 {
-	public:
-	  HMC5883L();
+    public:
+      HMC5883L();
 
-	  MagnetometerRaw ReadRawAxis();
-	  MagnetometerScaled ReadScaledAxis();
+      MagnetometerRaw ReadRawAxis();
+      MagnetometerScaled ReadScaledAxis();
 
-	  int SetMeasurementMode(uint8_t mode);
-	  int SetScale(float gauss);
+      int SetMeasurementMode(uint8_t mode);
+      int SetScale(float gauss);
 
-	  char* GetErrorText(int errorCode);
+      char* GetErrorText(int errorCode);
 
-	  uint8_t EnsureConnected();
-	  uint8_t IsConnected;
-	protected:
-	  void Write(int address, int byte);
-	  uint8_t* Read(int address, int length);
+      uint8_t EnsureConnected();
+      uint8_t IsConnected;
+    protected:
+      void Write(int address, int byte);
+      uint8_t* Read(int address, int length);
 
-	private:
-	  float m_Scale;
+    private:
+      float m_Scale;
 };
 #endif

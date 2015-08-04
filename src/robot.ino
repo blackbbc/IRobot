@@ -27,9 +27,10 @@ int E2 = 10;     //M2 Speed Control
 int M1 = 8;    //M1 Direction Control
 int M2 = 11;    //M2 Direction Control
 
-BMP085 dps = BMP085();
+
+BMP085 dps = BMP085();                    //Temperature, Altitude, Pressure
 FreeSixIMU sixDOF = FreeSixIMU();
-HMC5883L compass = HMC5883L();
+HMC5883L compass = HMC5883L();            //Compass
 int compassError =0;
 
 float _speedleft, _speedright;
@@ -62,7 +63,12 @@ void loop()
 {
     if (motor.check())
     {
-        Serial.println(millis());
+
+        //flag 0: forward 1:turn left 2:turn right 3: back
+        int flag =0;
+        URMreader();
+        IRBumperReader();
+
         Motor(2000, LF);
         Motor(2000, RT);
     }
@@ -72,6 +78,58 @@ void initSpeed()
 {
     _speedtarget[LF] = speedleft;
     _speedtarget[RT] = -speedright;
+}
+
+void URMreader()
+{
+    Wire.requestFrom(8,9);
+    int i = 0;
+    Serial.print("URM_Data:,");
+    while(Wire.available())
+    {
+        int c = Wire.read();
+        URMdata[i] = c;
+        i++;
+    }
+
+    // from 1 to 6;
+    for(int j = 1; j <= 6; j++)
+    {
+        int c = URMdata[j];
+        Serial.print(c);
+        Serial.print(",");
+    }
+    Serial.println();
+}
+
+void IRBumperReader()
+{
+    Wire.requestFrom(7,8);
+    int i = 0;
+    Serial.print("IR_Bumper_Data:,");
+    while(Wire.available())
+    {
+        if(i < 7)
+        {
+            int c = Wire.read();
+            IRdata[i] = c;
+        }
+        else
+        {
+            int c = Wire.read();
+            BumperValue = c;
+        }
+        i++;
+    }
+
+    for(i = 0;i < 7; i++)
+    {
+        Serial.print(IRdata[i]);
+        Serial.print(",");
+    }
+    Serial.print(BumperValue);
+    Serial.print(",");
+    Serial.println();
 }
 
 
