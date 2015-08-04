@@ -68,70 +68,70 @@ MagnetometerScaled HMC5883L::ReadScaledAxis()
 
 int HMC5883L::SetScale(float gauss)
 {
-	uint8_t regValue = 0x00;
-	if(gauss == 0.88)
-	{
-		regValue = 0x00;
-		m_Scale = 0.73;
-	}
-	else if(gauss == 1.3)
-	{
-		regValue = 0x01;
-		m_Scale = 0.92;
-	}
-	else if(gauss == 1.9)
-	{
-		regValue = 0x02;
-		m_Scale = 1.22;
-	}
-	else if(gauss == 2.5)
-	{
-		regValue = 0x03;
-		m_Scale = 1.52;
-	}
-	else if(gauss == 4.0)
-	{
-		regValue = 0x04;
-		m_Scale = 2.27;
-	}
-	else if(gauss == 4.7)
-	{
-		regValue = 0x05;
-		m_Scale = 2.56;
-	}
-	else if(gauss == 5.6)
-	{
-		regValue = 0x06;
-		m_Scale = 3.03;
-	}
-	else if(gauss == 8.1)
-	{
-		regValue = 0x07;
-		m_Scale = 4.35;
-	}
-	else
-		return ErrorCode_1_Num;
+    uint8_t regValue = 0x00;
+    if(gauss == 0.88)
+    {
+        regValue = 0x00;
+        m_Scale = 0.73;
+    }
+    else if(gauss == 1.3)
+    {
+        regValue = 0x01;
+        m_Scale = 0.92;
+    }
+    else if(gauss == 1.9)
+    {
+        regValue = 0x02;
+        m_Scale = 1.22;
+    }
+    else if(gauss == 2.5)
+    {
+        regValue = 0x03;
+        m_Scale = 1.52;
+    }
+    else if(gauss == 4.0)
+    {
+        regValue = 0x04;
+        m_Scale = 2.27;
+    }
+    else if(gauss == 4.7)
+    {
+        regValue = 0x05;
+        m_Scale = 2.56;
+    }
+    else if(gauss == 5.6)
+    {
+        regValue = 0x06;
+        m_Scale = 3.03;
+    }
+    else if(gauss == 8.1)
+    {
+        regValue = 0x07;
+        m_Scale = 4.35;
+    }
+    else
+        return ErrorCode_1_Num;
 
-	// Setting is in the top 3 bits of the register.
-	regValue = regValue << 5;
-	Write(ConfigurationRegisterB, regValue);
+    // Setting is in the top 3 bits of the register.
+    regValue = regValue << 5;
+    Write(ConfigurationRegisterB, regValue);
 }
 
 int HMC5883L::SetMeasurementMode(uint8_t mode)
 {
-	Write(ModeRegister, mode);
+    Write(ModeRegister, mode);
 }
 
 uint8_t HMC5883L::EnsureConnected()
 {
-	uint8_t data = Read(IdentityRegister, 1)[0];
+    uint8_t data = Read(IdentityRegister, 1)[0];
 
-	if(data == IdentityRegisterValue)
-		IsConnected = 1;
-	else
-		IsConnected = 0;
+    if(data == IdentityRegisterValue)
+        IsConnected = 1;
+    else
+        IsConnected = 0;
 
-	return IsConnected;
+    return IsConnected;
 }
 
 void HMC5883L::Write(int address, int data)
@@ -154,10 +154,10 @@ uint8_t* HMC5883L::Read(int address, int length)
   uint8_t buffer[length];
   if(Wire.available() == length)
   {
-	  for(uint8_t i = 0; i < length; i++)
-	  {
-		  buffer[i] = read_I2C();
-	  }
+      for(uint8_t i = 0; i < length; i++)
+      {
+          buffer[i] = read_I2C();
+      }
   }
   Wire.endTransmission();
 
@@ -166,8 +166,8 @@ uint8_t* HMC5883L::Read(int address, int length)
 
 char* HMC5883L::GetErrorText(int errorCode)
 {
-	if(ErrorCode_1_Num == 1)
-		return ErrorCode_1;
+    if(ErrorCode_1_Num == 1)
+        return ErrorCode_1;
 
-	return "Error not defined.";
+    return "Error not defined.";
 }
