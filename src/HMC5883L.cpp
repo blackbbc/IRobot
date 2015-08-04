@@ -111,7 +111,7 @@ int HMC5883L::SetScale(float gauss)
 	}
 	else
 		return ErrorCode_1_Num;
-	
+
 	// Setting is in the top 3 bits of the register.
 	regValue = regValue << 5;
 	Write(ConfigurationRegisterB, regValue);
@@ -147,7 +147,7 @@ uint8_t* HMC5883L::Read(int address, int length)
   Wire.beginTransmission(HMC5883L_Address);
   write_I2C(address);
   Wire.endTransmission();
-  
+
   Wire.beginTransmission(HMC5883L_Address);
   Wire.requestFrom(HMC5883L_Address, length);
 
@@ -168,6 +168,6 @@ char* HMC5883L::GetErrorText(int errorCode)
 {
 	if(ErrorCode_1_Num == 1)
 		return ErrorCode_1;
-	
+
 	return "Error not defined.";
 }
