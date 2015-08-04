@@ -1,6 +1,6 @@
 /*
  *  iLab@Tongji
- *  Author : Yiren Lu 
+ *  Author : Yiren Lu
  *  Date : 06/02/2014
  *
  */
@@ -156,18 +156,19 @@ void advance(char a, char b)
 void URMreader()
 {
     Wire.requestFrom(8,9);
-    int i=0;
+    int i = 0;
     //Serial.print("URM_Data:,");
-    while(Wire.available()){
+    while(Wire.available())
+    {
         int c = Wire.read();
-        URMdata[i]=c;
+        URMdata[i] = c;
         i++;
     }
 
     // from 1 to 6;
     for(int j = 1; j <= 6; j++)
     {
-        int c= URMdata[j];
+        int c = URMdata[j];
         //Serial.print(c);
         //Serial.print(",");
     }
@@ -183,7 +184,8 @@ void IRBumperReader()
     //Serial.print("IR_Bumper_Data:,");
     while(Wire.available())
     {
-        if(i < 7){
+        if(i < 7)
+        {
             int c = Wire.read();
             IRdata[i] = c;
         }
@@ -315,62 +317,68 @@ void PrintData()
 
 void loop(void)
 {
+    if (motorMetro.check())
+    {
+        //read data from IMU
+        dps.getTemperature(&Temperature);
+        dps.getPressure(&Pressure);
+        dps.getAltitude(&Altitude);
+        sixDOF.getEuler(angles);
+        getHeading();
+        //PrintData();
 
-    if(motorMetro.check()){
+        /// Low level control logics:
 
-    //read data from IMU
-    dps.getTemperature(&Temperature);
-    dps.getPressure(&Pressure);
-    dps.getAltitude(&Altitude);
-    sixDOF.getEuler(angles);
-    getHeading();
-    //PrintData();
-
-    /// Low level control logics:
-
-    //flag 0: forward 1:turn left 2:turn right 3: backup
-    int flag =0;
-    URMreader();
-    IRBumperReader();
-
-    /*
-    Serial.print(_speedtarget[LF]);
-        Serial.print(",");
-    Serial.print(_speedtarget[RT]);
-        Serial.print(",");
-        Serial.print(pastCoder[LF]);
-        Serial.print(",");
-        Serial.print(pastCoder[RT]);
-        Serial.print(",");
-        // output the current wheel speed
-        Serial.print(_speedleft);
-        Serial.print(",");
-        Serial.print(_speedright);
-        Serial.print(",");
-        Serial.print(_Loutput);
-        Serial.print(",");
-        Serial.print(_Routput);
-        Serial.print("\n");
-    */
+        //flag 0: forward 1:turn left 2:turn right 3: backup
+        int flag =0;
+        URMreader();
+        IRBumperReader();
 
         /*
-        for(int i = 2;i<=4;i++){
-          if(URMdata[i]<20){
-            flag=0; 
-          }
+        Serial.print(_speedtarget[LF]);
+            Serial.print(",");
+        Serial.print(_speedtarget[RT]);
+            Serial.print(",");
+            Serial.print(pastCoder[LF]);
+            Serial.print(",");
+            Serial.print(pastCoder[RT]);
+            Serial.print(",");
+            // output the current wheel speed
+            Serial.print(_speedleft);
+            Serial.print(",");
+            Serial.print(_speedright);
+            Serial.print(",");
+            Serial.print(_Loutput);
+            Serial.print(",");
+            Serial.print(_Routput);
+            Serial.print("\n");
+        */
+
+        /*
+        for(int i = 2;i<=4;i++)
+        {
+            if(URMdata[i]<20)
+            {
+                flag=0;
+            }
         }
         */
-        if(URMdata[3]<27||IRdata[2]>200||BumperValue!=7){
-           flag=3; //backup
+
+        if (URMdata[3] < 27 || IRdata[2]>200 || BumperValue != 7)
+        {
+            flag = 3; //backup
         }
-        if(URMdata[2]<27||IRdata[3]>200||IRdata[4]>200){
-           flag=1; //turn left
+        if (URMdata[2] <27 || IRdata[3]>200 || IRdata[4] > 200)
+        {
+            flag = 1; //turn left
         }
-        if(URMdata[6]<27){
-          flag=0; //forward
+        if (URMdata[6] < 27)
+        {
+            flag = 0; //forward
         }
-        if(URMdata[4]<27||IRdata[0]>200||IRdata[1]>200){
-          flag=2; //turn right
+        if (URMdata[4] < 27 || IRdata[0] > 200 || IRdata[1] > 200)
+        {
+            flag = 2; //turn right
         }
 
         // This is low level control logic
@@ -378,44 +386,44 @@ void loop(void)
         //go = flag;
     }
 
-    if(BehaviorInterval.check()){
-    static int lastLspeed = 0;
-    static int lastRspeed = 0;
-    ResentSpeed();
-    static int lastLOutput = 0;
-    static int lastROutput = 0;
+    if (BehaviorInterval.check())
+    {
+        static int lastLspeed = 0;
+        static int lastRspeed = 0;
+        ResentSpeed();
+        static int lastLOutput = 0;
+        static int lastROutput = 0;
 
-    float Lpara, Rpara;
-    // calcuate the targetspeed to the PWM number;
-    if(_Loutput ==0||_Routput == 0){
-        Lpara = TVPIDcal(_speedleft, true);
-        Rpara = TVPIDcal(_speedright, false);
-        _Loutput = int(TVAffect(Lpara));
-        _Routput = int(TVAffect(Rpara));
-    }
+        float Lpara, Rpara;
+        // calcuate the targetspeed to the PWM number;
+        if (_Loutput ==0 || _Routput == 0)
+        {
+            Lpara = TVPIDcal(_speedleft, true);
+            Rpara = TVPIDcal(_speedright, false);
+            _Loutput = int(TVAffect(Lpara));
+            _Routput = int(TVAffect(Rpara));
+        }
 
-    _Loutput += (_speedtarget[LF] - _speedleft);
-    _Routput += (_speedtarget[RT] - _speedright);
+        _Loutput += (_speedtarget[LF] - _speedleft);
+        _Routput += (_speedtarget[RT] - _speedright);
 
-    Motor(_Loutput, LF);
-    Motor(_Routput, RT);
-
+        Motor(_Loutput, LF);
+        Motor(_Routput, RT);
     }
 
     // High level control signals from serial port
-    // example : "a 25 25"  (no quotation mark)    
+    // example : "a 25 25"  (no quotation mark)
     /*
     if (Serial.available() > 0) {
         int inByte = Serial.read();
     if(inByte == 'a'){
         int leftWheelSpeed = Serial.parseInt();
-        int rightWheelSpeed = Serial.parseInt();    
+        int rightWheelSpeed = Serial.parseInt();
         advance(leftWheelSpeed, -rightWheelSpeed);
     }
-
     }*/
 
-/*
+    /*
     // do something different depending on the character received.
     // The switch statement expects single number values for each case;
     // in this exmaple, though, you're using single quotes to tell
@@ -423,43 +431,43 @@ void loop(void)
     // example 'a' = 97, 'b' = 98, and so forth:
     switch (inByte) {
     case 'a':
-      //Serial.print('a');
-      go = 0;
-      //forward
-      break;
+        //Serial.print('a');
+        go = 0;
+        //forward
+        break;
     case 'b':
-      //Serial.print('b');
-      go = 3;
-      //backup
-      break;
+        //Serial.print('b');
+        go = 3;
+        //backup
+        break;
     case 'l':
-      //Serial.print('l');
-      go = 1;
-      break;
+        //Serial.print('l');
+        go = 1;
+        break;
     case 'r':
-      //Serial.print('r');
-      go = 2;
-      break;  
+        //Serial.print('r');
+        go = 2;
+        break;
     default:
-      break;
+        break;
     }
-*/
+    */
 
 
     // Low level control logics
 
     // if you want the robot run autonomously (avoiding obstacles), then umcomment below code:
-/*
+    /*
     if(go ==0){ //forward
-      advance (speedleft,-speedright);//forward
+        advance (speedleft,-speedright);//forward
     }else if(go==1) { // turn left
-      advance(-speedleft,-speedright); //turn left
+        advance(-speedleft,-speedright); //turn left
     }else if(go==2) { // turn right
-      advance(speedleft, speedright); //turn right
+        advance(speedleft, speedright); //turn right
     }else if(go==3) { // back up
-      advance(-speedleft, speedright); //backup
+        advance(-speedleft, speedright); //backup
     }
-  */  
+    */
 }
 
 /************************************************************
