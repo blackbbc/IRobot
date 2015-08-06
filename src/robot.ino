@@ -461,10 +461,10 @@ float TVPIDcal(float prevspeed,boolean target)
 {
     static int sumerror[2];
     static int i;
-    if(target)
-    i = 0;
+    if (target)
+        i = 0;
     else
-    i = 1;
+        i = 1;
     int derror;
     int error = _speedtarget[i] - prevspeed;
 
@@ -493,13 +493,13 @@ int TVAffect(float pidpara)
     float factor;
 
     if(pidpara>_maximum)
-    factor = 1;
-    else if(pidpara>0)
-    factor = pidpara/_maximum;
-    else if(pidpara<_minimum)
-    factor = -1;
+        factor = 1;
+    else if (pidpara>0)
+        factor = pidpara/_maximum;
+    else if (pidpara<_minimum)
+        factor = -1;
     else
-    factor = pidpara/_maximum;
+        factor = pidpara/_maximum;
 
     result *= factor;
     result += 1500;
