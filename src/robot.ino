@@ -87,9 +87,30 @@ void setup()
     digitalWrite(E1, LOW);
     digitalWrite(E2, LOW);
 
+    initSpeed();
+
+    EncoderInit();
+    _perimeterA = 42.72566*1000;
+    _FirmPulsePG = 1326;
+    // PID
+    _proportion = 3;
+    _integral = 0.5;
+    _derivative = 0.6;
+    _maximum = 500;
+    _minimum = _maximum*(-1);
+
+    delay(1000);
     dps.init();
     dps.dumpCalData();
+
+    delay(1000);
     sixDOF.init();
+
+    delay(1000);
+    compassError = compass.SetScale(1.3);// Set the scale of the compass
+    compassError = compass.SetMeasurementMode(Measurement_Continuous);
+    if (compassError!=0)
+        Serial.println(compass.GetErrorText(compassError));
 }
 
 void loop()
