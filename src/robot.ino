@@ -8,12 +8,11 @@
 #include "BMP085.h"
 #include "Metro.h"
 
-#define LF 0
-#define RT 1
 
 int URMdata[9]={0,0,0,0,0,0,0,0,0};
 static float IRdata[7] = { 0,0,0,0,0,0,0 };
 int BumperValue =7;
+float _speedleft, _speedright;
 long Temperature = 0, Pressure = 0, Altitude = 0;
 float angles[3];
 float heading;
@@ -33,9 +32,40 @@ FreeSixIMU sixDOF = FreeSixIMU();
 HMC5883L compass = HMC5883L();            //Compass
 int compassError =0;
 
-float _speedleft, _speedright;
-int speedleft = 25, speedright = 25;
+
+//encoder
+#define Pbn 8
+int counter = 0;
+const byte encoder0pinA = 2;
+const byte encoder0pinB = 4;
+const byte encoder1pinA = 3;
+const byte encoder1pinB = 5;
+
+byte encoder0PinALast;
+byte encoder1PinALast;
+
+int Lduration;
+int Rduration;
+boolean LDirection;
+boolean RDirection;
+byte wheelDir = 0x00;
+int _CMDspeed[2]={0,0};
+
+
+float _perimeterA, _FirmPulsePG;
+int pastCoder[2];
+long totalCoder[2];
+#define LF 0
+#define RT 1
+float _proportion, _integral, _derivative, _maximum, _minimum;
 int _speedtarget[2];
+double _lasterror[2];
+double _preverror[2];
+int i;
+float _Loutput=0.0, _Routput=0.0;
+
+
+int speedleft = 25, speedright = 25;
 
 
 void setup()
@@ -130,6 +160,77 @@ void IRBumperReader()
     Serial.print(BumperValue);
     Serial.print(",");
     Serial.println();
+}
+
+
+/************************************************************
+wheelSpeed
+This is used for reading the value of pulses of the encoder
+variable:encoder0pinB and encoder0pin--the output if the sensor
+         Direction--the direction of wheel turning
+output:duration--the number of the pulses
+Pepin
+************************************************************/
+void LwheelSpeed()  // the encoder code
+{
+  int Lstate = digitalRead(encoder0pinA);
+  if((encoder0PinALast == LOW) && Lstate==HIGH)
+  {
+    int val = digitalRead(encoder0pinB);
+    if(val == LOW && LDirection)
+    {
+      LDirection = false; //Reverse
+    }
+    else if(val == HIGH && !LDirection)
+    {
+      LDirection = true;  //Forward
+    }
+  }
+  encoder0PinALast = Lstate;
+
+  if(!LDirection)  Lduration++;
+  else  Lduration--;
+}
+
+void RwheelSpeed()
+{
+  int Rstate = digitalRead(encoder1pinA);
+  if((encoder1PinALast == LOW) && Rstate==HIGH)
+  {
+    int val = digitalRead(encoder1pinB);
+    if(val == LOW && RDirection)
+    {
+      RDirection = false; //Reverse
+    }
+    else if(val == HIGH && !RDirection)
+    {
+      RDirection = true;  //Forward
+    }
+  }
+  encoder1PinALast = Rstate;
+
+  if(!RDirection)  Rduration++;
+  else  Rduration--;
+}
+
+
+
+/************************************************************
+EncoderInit
+This is used for initializing the encoder module
+variable:encoder0pinB--the output of the encoder
+Pepin
+************************************************************/
+void EncoderInit() //init of the encoder
+{
+  LDirection = true;
+  RDirection = true;//default -> Forward
+  pinMode(encoder0pinA,INPUT_PULLUP);
+  pinMode(encoder0pinB,INPUT_PULLUP);
+  pinMode(encoder1pinA,INPUT_PULLUP);
+  pinMode(encoder1pinB,INPUT_PULLUP);
+  attachInterrupt(0, LwheelSpeed, CHANGE);
+  attachInterrupt(1, RwheelSpeed, CHANGE);
 }
 
 
