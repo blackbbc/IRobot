@@ -9,6 +9,7 @@
 #include "Metro.h"
 
 
+//all the info we need from robot
 int URMdata[9]={0,0,0,0,0,0,0,0,0};
 static float IRdata[7] = { 0,0,0,0,0,0,0 };
 int BumperValue =7;
@@ -64,6 +65,8 @@ double _preverror[2];
 int i;
 float _Loutput=0.0, _Routput=0.0;
 
+Metro DataTrans = Metro(1000, true);
+Metro BehaviorInterval = Metro(25, true);
 
 int speedleft = 25, speedright = 25;
 
@@ -113,19 +116,19 @@ void initSpeed()
 void URMreader()
 {
     Wire.requestFrom(8,9);
-    int i = 0;
+    int i=0;
     Serial.print("URM_Data:,");
-    while(Wire.available())
+    while (Wire.available())
     {
         int c = Wire.read();
-        URMdata[i] = c;
+        URMdata[i]=c;
         i++;
     }
 
     // from 1 to 6;
-    for(int j = 1; j <= 6; j++)
+    for(int j =1;j<=6;j++)
     {
-        int c = URMdata[j];
+        int c= URMdata[j];
         Serial.print(c);
         Serial.print(",");
     }
@@ -135,14 +138,14 @@ void URMreader()
 void IRBumperReader()
 {
     Wire.requestFrom(7,8);
-    int i = 0;
+    int i=0;
     Serial.print("IR_Bumper_Data:,");
     while(Wire.available())
     {
-        if(i < 7)
+        if(i<7)
         {
             int c = Wire.read();
-            IRdata[i] = c;
+            IRdata[i]=c;
         }
         else
         {
@@ -152,7 +155,7 @@ void IRBumperReader()
         i++;
     }
 
-    for(i = 0;i < 7; i++)
+    for(i = 0;i<7;i++)
     {
         Serial.print(IRdata[i]);
         Serial.print(",");
@@ -191,6 +194,7 @@ void LwheelSpeed()  // the encoder code
   if(!LDirection)  Lduration++;
   else  Lduration--;
 }
+
 
 void RwheelSpeed()
 {
