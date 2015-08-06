@@ -118,13 +118,44 @@ void loop()
     if (motor.check())
     {
 
+        //read data from IMU
+        dps.getTemperature(&Temperature);
+        dps.getPressure(&Pressure);
+        dps.getAltitude(&Altitude);
+
+        sixDOF.getEuler(angles);
+        getHeading();
+        //PrintData();
+
         //flag 0: forward 1:turn left 2:turn right 3: back
         int flag =0;
         URMreader();
         IRBumperReader();
+    }
 
-        Motor(2000, LF);
-        Motor(-2000, RT);
+    if (behavior.check())
+    {
+        static int lastLspeed = 0;
+        static int lastRspeed = 0;
+        RecentSpeed();
+        static int lastLOutput = 0;
+        static int lastROutput = 0;
+
+        float Lpara, Rpara;
+        // calcuate the targetspeed to the PWM number;
+        if (_Loutput ==0 || _Routput == 0)
+        {
+            Lpara = TVPIDcal(_speedleft, true);
+            Rpara = TVPIDcal(_speedright, false);
+            _Loutput = int(TVAffect(Lpara));
+            _Routput = int(TVAffect(Rpara));
+        }
+
+        _Loutput += (_speedtarget[LF] - _speedleft);
+        _Routput += (_speedtarget[RT] - _speedright);
+
+        Motor(_Loutput, LF);
+        Motor(_Routput, RT);
     }
 }
 
@@ -184,6 +215,112 @@ void IRBumperReader()
     Serial.print(BumperValue);
     Serial.print(",");
     Serial.println();
+}
+
+void PrintData(){
+  Serial.print("Eular Angle: ");
+  Serial.print(angles[0]);
+  Serial.print("  ");  
+  Serial.print(angles[1]);
+  Serial.print("  ");
+  Serial.print(angles[2]);
+  Serial.print("  ");
+  Serial.print("Heading: ");
+  Serial.print(heading);
+  Serial.print("  ");
+  Serial.print("Temperature: ");
+  Serial.print(Temperature);
+  Serial.print("C");
+  Serial.print("  ");
+  Serial.print("Altitude: ");
+  Serial.print(Altitude);
+  Serial.print("cm");
+  Serial.print("  ");
+  Serial.print("Pressure: ");
+  Serial.print(Pressure);
+  Serial.println(" Pa");
+}
+
+void getHeading()
+{
+    // Retrive the raw values from the compass (not scaled).
+    MagnetometerRaw raw = compass.ReadRawAxis();
+    // Retrived the scaled values from the compass (scaled to the configured scale).
+    MagnetometerScaled scaled = compass.ReadScaledAxis();
+
+    // Values are accessed like so:
+    int MilliGauss_OnThe_XAxis = scaled.XAxis;// (or YAxis, or ZAxis)
+
+    // Calculate heading when the magnetometer is level, then correct for signs of axis.
+    heading = atan2(scaled.YAxis, scaled.XAxis);
+
+    float declinationAngle = 0.0457;
+    heading += declinationAngle;
+
+    // Correct for when signs are reversed.
+    if (heading < 0)
+        heading += 2*PI;
+
+    // Check for wrap due to addition of declination.
+    if(heading > 2*PI)
+        heading -= 2*PI;
+
+    // Convert radians to degrees for readability.
+    heading = heading * 180/M_PI;
+}
+
+
+/************************************************ calculate speed (cm/s) ***********************************************/
+/************************************************************
+lastspeed
+This is used for calculating the real time speed
+inout:longs--pulses of the encoder
+      diff--the times past
+variable:_perimeterA--preimter of the wheel
+         _FirmPulsePG--total pulses of one circle
+output:dist--the speed of the motor
+Lauren
+************************************************************/
+float lastspeed(int longs,int diff)
+{
+    double internum = _perimeterA;
+    internum /= diff;
+    float dist = float(internum*longs);
+    dist /= _FirmPulsePG;
+    return dist;
+}
+
+
+/************************************************************
+RecentSpeed
+This is used for calculating the real time speed of 2 wheels
+variable:pasttime-- the past time after the wheels run
+         Lduration-- the duration of left wheel
+         Rduration--the duration of right wheel
+output:_speedleft--the speed of left wheel
+       _speedright--the speed of right wheeel
+Lauren
+************************************************************/
+void RecentSpeed()
+{
+    static int pasttime;
+    static unsigned long lasttime;
+    static unsigned long now;
+    now = millis();
+    pasttime = now - lasttime;
+    lasttime = now;
+
+    _speedleft = lastspeed(Lduration , pasttime);
+    _speedright = lastspeed(Rduration , pasttime);
+    /* check the encoder */
+    //  Serial.println(pasttime);
+    //  Serial.print("  ");
+    //  Serial.println(Lduration);
+    pastCoder[LF] += Lduration;
+    pastCoder[RT] += Rduration;
+
+    Lduration = 0;
+    Rduration = 0;
 }
 
 
@@ -302,4 +439,70 @@ void Motor(int value,byte whichwheel)
             digitalWrite(M2,HIGH);
         }
     }
+}
+
+/************************************************* PID Control ***********************************************/
+
+/************************************************************
+TVPIDcal
+This is used for calculating the output of PID controller
+inout:prevspeed--the real time speed
+      target--determine whether the first error
+variable:_proportion--the proportion constant
+         error--the error of the real time speed and the target speed
+         _integral--the integral constant
+         sumerror[i]--the sum of the errors
+         _derivative--the derivative constant
+         derror--the derivative of the error
+output: TVPIDcal()-- output of the PID controller
+Lauren
+************************************************************/
+float TVPIDcal(float prevspeed,boolean target)
+{
+    static int sumerror[2];
+    static int i;
+    if(target)
+    i = 0;
+    else
+    i = 1;
+    int derror;
+    int error = _speedtarget[i] - prevspeed;
+
+    sumerror[i] += error;
+    sumerror[i] = min(_maximum,sumerror[i]); //limit the range of intergral segment
+    sumerror[i] = max(_minimum,sumerror[i]);
+
+    derror = _lasterror[i] - _preverror[i];
+    _preverror[i] = _lasterror[i];
+    _lasterror[i] = error;
+
+    return (_proportion*error+_integral*sumerror[i]+_derivative*derror);
+}
+
+
+/************************************************************
+TVAffect
+This is used for limiting the output of the PID controller
+inout:pidpara--the output of the PID controller
+output:TVAffect()
+Lauren
+************************************************************/
+int TVAffect(float pidpara)
+{
+    float result = 500;
+    float factor;
+
+    if(pidpara>_maximum)
+    factor = 1;
+    else if(pidpara>0)
+    factor = pidpara/_maximum;
+    else if(pidpara<_minimum)
+    factor = -1;
+    else
+    factor = pidpara/_maximum;
+
+    result *= factor;
+    result += 1500;
+
+    return result;
 }
