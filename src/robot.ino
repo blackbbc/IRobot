@@ -30,7 +30,7 @@ int M2 = 11;    //M2 Direction Control
 
 BMP085 dps = BMP085();                    //Temperature, Altitude, Pressure
 FreeSixIMU sixDOF = FreeSixIMU();
-HMC5883L compass;            //Compass
+HMC5883L compass = HMC5883L();
 int compassError =0;
 
 
@@ -68,6 +68,7 @@ float _Loutput=0.0, _Routput=0.0;
 Metro DataTrans = Metro(1000, true);
 Metro BehaviorInterval = Metro(25, true);
 
+int go = 0;
 int speedleft = 25, speedright = 25;
 
 
@@ -87,31 +88,30 @@ void setup()
     digitalWrite(E1, LOW);
     digitalWrite(E2, LOW);
 
-    //initSpeed();
+    initSpeed();
 
-    //EncoderInit();
-    //_perimeterA = 42.72566*1000;
-    //_FirmPulsePG = 1326;
-    //// PID
-    //_proportion = 3;
-    //_integral = 0.5;
-    //_derivative = 0.6;
-    //_maximum = 500;
-    //_minimum = _maximum*(-1);
+    EncoderInit();
+    _perimeterA = 42.72566*1000;
+    _FirmPulsePG = 1326;
+    // PID
+    _proportion = 3;
+    _integral = 0.5;
+    _derivative = 0.6;
+    _maximum = 500;
+    _minimum = _maximum*(-1);
 
-    //delay(1000);
-    //dps.init();
-    //dps.dumpCalData();
+    delay(1000);
+    dps.init();
+    dps.dumpCalData();
 
-    //delay(1000);
-    //sixDOF.init();
+    delay(1000);
+    sixDOF.init();
 
-    //delay(1000);
-    //compass = HMC5883L()
-    //compassError = compass.SetScale(1.3);// Set the scale of the compass
-    //compassError = compass.SetMeasurementMode(Measurement_Continuous);
-    //if (compassError!=0)
-    //    Serial.println(compass.GetErrorText(compassError));
+    delay(1000);
+    compassError = compass.SetScale(1.3);// Set the scale of the compass
+    compassError = compass.SetMeasurementMode(Measurement_Continuous);
+    if (compassError!=0)
+        Serial.println(compass.GetErrorText(compassError));
 }
 
 void loop()
@@ -120,46 +120,89 @@ void loop()
     {
 
         //read data from IMU
-        //dps.getTemperature(&Temperature);
-        //dps.getPressure(&Pressure);
-        //dps.getAltitude(&Altitude);
+        dps.getTemperature(&Temperature);
+        dps.getPressure(&Pressure);
+        dps.getAltitude(&Altitude);
 
-        //sixDOF.getEuler(angles);
-        //getHeading();
+        sixDOF.getEuler(angles);
+        getHeading();
         //PrintData();
 
-        //flag 0: forward 1:turn left 2:turn right 3: back
-        int flag =0;
         URMreader();
         IRBumperReader();
     }
 
     if (behavior.check())
     {
-        //static int lastLspeed = 0;
-        //static int lastRspeed = 0;
-        //RecentSpeed();
-        //static int lastLOutput = 0;
-        //static int lastROutput = 0;
+        if(URMdata[3] < 27 || IRdata[2] > 200 || BumperValue != 7)
+        {
+            go = 3; //backup
+        }
+        if(URMdata[2] < 27 || IRdata[3] > 200 || IRdata[4] > 200)
+        {
+            go = 1; //turn left
+        }
+        if(URMdata[6] < 27)
+        {
+            go = 0; //forward
+        }
+        if(URMdata[4] < 27 || IRdata[0] > 200 || IRdata[1] > 200)
+        {
+            go = 2; //turn right
+        }
 
-        //float Lpara, Rpara;
-        //// calcuate the targetspeed to the PWM number;
-        //if (_Loutput ==0 || _Routput == 0)
-        //{
-        //    Lpara = TVPIDcal(_speedleft, true);
-        //    Rpara = TVPIDcal(_speedright, false);
-        //    _Loutput = int(TVAffect(Lpara));
-        //    _Routput = int(TVAffect(Rpara));
-        //}
+        if (go == 0)
+        {
+            advance(speedleft, -speedright);//forward
+        }
+        else if (go == 1)
+        {
+            advance(-speedleft, -speedright); //turn left
+        }
+        else if(go == 2)
+        {
+            advance(speedleft, speedright); //turn right
+        }
+        else if(go == 3)
+        {
+            advance(-speedleft, speedright); //backup
+        }
 
-        //_Loutput += (_speedtarget[LF] - _speedleft);
-        //_Routput += (_speedtarget[RT] - _speedright);
+
+        static int lastLspeed = 0;
+        static int lastRspeed = 0;
+        RecentSpeed();
+        static int lastLOutput = 0;
+        static int lastROutput = 0;
+
+        float Lpara, Rpara;
+        // calcuate the targetspeed to the PWM number;
+        if (_Loutput ==0 || _Routput == 0)
+        {
+            Lpara = TVPIDcal(_speedleft, true);
+            Rpara = TVPIDcal(_speedright, false);
+            _Loutput = int(TVAffect(Lpara));
+            _Routput = int(TVAffect(Rpara));
+        }
+
+        _Loutput += (_speedtarget[LF] - _speedleft);
+        _Routput += (_speedtarget[RT] - _speedright);
 
         //Motor(_Loutput, LF);
         //Motor(_Routput, RT);
-        Motor(2000, LF);
-        Motor(-2000, RT);
+        Motor(1600, LF);
+        Motor(1600, RT);
     }
+}
+
+void advance(char a,char b)
+{
+  //analogWrite (E1,a);      //PWM Speed Control
+  //digitalWrite(M1,HIGH);
+  //analogWrite (E2,b);
+  //digitalWrite(M2,HIGH);
+  _speedtarget[LF] = a;
+  _speedtarget[RT] = b;
 }
 
 void initSpeed()
@@ -171,19 +214,19 @@ void initSpeed()
 void URMreader()
 {
     Wire.requestFrom(8,9);
-    int i=0;
+    int i = 0;
     Serial.print("URM_Data:,");
     while (Wire.available())
     {
         int c = Wire.read();
-        URMdata[i]=c;
+        URMdata[i] = c;
         i++;
     }
 
     // from 1 to 6;
-    for(int j =1;j<=6;j++)
+    for(int j = 1;j <= 6; j++)
     {
-        int c= URMdata[j];
+        int c = URMdata[j];
         Serial.print(c);
         Serial.print(",");
     }
@@ -193,14 +236,14 @@ void URMreader()
 void IRBumperReader()
 {
     Wire.requestFrom(7,8);
-    int i=0;
+    int i = 0;
     Serial.print("IR_Bumper_Data:,");
     while(Wire.available())
     {
         if(i<7)
         {
             int c = Wire.read();
-            IRdata[i]=c;
+            IRdata[i] = c;
         }
         else
         {
@@ -210,7 +253,7 @@ void IRBumperReader()
         i++;
     }
 
-    for(i = 0;i<7;i++)
+    for(i = 0; i < 7; i++)
     {
         Serial.print(IRdata[i]);
         Serial.print(",");
@@ -223,7 +266,7 @@ void IRBumperReader()
 void PrintData(){
   Serial.print("Eular Angle: ");
   Serial.print(angles[0]);
-  Serial.print("  ");  
+  Serial.print("  ");
   Serial.print(angles[1]);
   Serial.print("  ");
   Serial.print(angles[2]);
